@@ -2,205 +2,312 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회광정밀 / 스마트 일일 작업일지 시스템</title>
-    <!-- Tailwind CSS (UI 스타일링) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>회광정밀 / 스마트 일일 작업일지</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
-        .input-box { border: 1px solid #cbd5e1; border-radius: 0.375rem; padding: 0.5rem; width: 100%; font-size: 0.875rem; }
+        body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; background-color: #f1f5f9; }
+        .input-box { border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.75rem; width: 100%; font-size: 0.95rem; }
         .input-box:focus { outline: 2px solid #2563eb; background-color: #fff; }
+        .step-card { display: none; }
+        .step-card.active { display: block; }
     </style>
 </head>
-<body class="p-4 md:p-6">
-    <div class="max-w-7xl mx-auto space-y-6">
-        
-        <!-- 1. 헤더 영역 -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200 gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">회광정밀 / 스마트 일일 작업일지</h1>
-                <p class="text-sm text-slate-500 mt-1">FOM-KPI 및 일일 생산 데이터 구글시트 연동 시스템</p>
+<body class="p-4 min-h-screen flex items-center justify-center">
+
+    <div class="w-full max-w-2xl mx-auto">
+
+        <!-- ================= 0. 로그인 화면 ================= -->
+        <div id="login-section" class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">회광정밀</h1>
+                <p class="text-sm text-slate-500 mt-1">스마트 일일 작업일지 시스템</p>
             </div>
-            <div class="flex gap-2">
-                <button onclick="window.print()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium border">일지 인쇄</button>
-                <button id="save-btn" onclick="saveLog()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm">구글시트로 저장</button>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">작업자 이름 / 아이디</label>
+                    <input type="text" id="login-id" class="input-box" placeholder="예: 홍길동 (관리자는 admin 입력)" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">비밀번호</label>
+                    <input type="password" id="login-pw" class="input-box" placeholder="비밀번호 입력" required>
+                </div>
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">로그인</button>
+            </form>
+            <div class="mt-4 text-center">
+                <p class="text-xs text-slate-400">💡 관리자 조회: ID에 <b class="text-slate-600">admin</b> 입력 후 로그인</p>
             </div>
         </div>
 
-        <!-- 2. 실시간 KPI 요약 카드 -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <span class="text-xs font-semibold text-slate-400 uppercase">설비 가동률</span>
-                <div class="text-3xl font-bold text-blue-600 mt-2" id="kpi-operating-rate">87.5%</div>
-                <p class="text-xs text-slate-500 mt-1">총 비가동: <span id="kpi-downtime" class="font-bold text-slate-700">60</span>분</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <span class="text-xs font-semibold text-slate-400 uppercase">목표 달성률</span>
-                <div class="text-3xl font-bold text-emerald-600 mt-2" id="kpi-achievement-rate">100.0%</div>
-                <p class="text-xs text-slate-500 mt-1">계획 대비 완수 (80 / 80 EA)</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <span class="text-xs font-semibold text-slate-400 uppercase">공정 불량률</span>
-                <div class="text-3xl font-bold text-rose-600 mt-2" id="kpi-defect-rate">1.25%</div>
-                <p class="text-xs text-slate-500 mt-1">총 불량 수량: <span id="kpi-defect-count" class="font-bold text-slate-700">1</span> EA</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <span class="text-xs font-semibold text-slate-400 uppercase">작업 생산성</span>
-                <div class="text-3xl font-bold text-indigo-600 mt-2" id="kpi-efficiency">100.0%</div>
-                <p class="text-xs text-slate-500 mt-1">양품 수량: <span id="kpi-good-qty" class="font-bold text-slate-700">79</span> EA</p>
-            </div>
-        </div>
-
-        <!-- 3. 일일 작업일지 입력 양식 -->
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+        <!-- ================= A. 작업자 입력 화면 (로그인 사용자용) ================= -->
+        <div id="app-section" class="hidden space-y-4">
             
-            <!-- 기본 정보 -->
-            <div class="border-b pb-4">
-                <h2 class="text-lg font-bold text-slate-800 mb-4">기본 정보</h2>
-                <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">작성일자</label>
-                        <input type="date" id="work-date" value="2026-06-15" class="input-box">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">작업자</label>
-                        <input type="text" id="worker" value="소경화" class="input-box">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">교대</label>
-                        <select id="shift" class="input-box"><option>주간</option><option>야간</option></select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">생산팀</label>
-                        <input type="text" id="team" value="생산2팀" class="input-box">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">생산라인/장비</label>
-                        <select id="line" class="input-box">
-                            <option selected>공용페달1</option>
-                            <option>공용페달2</option>
-                            <option>세이프티</option>
-                            <option>두산FET타입</option>
-                            <option>SMT</option>
-                            <option>셀렉티브</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">작지 NO</label>
-                        <input type="text" id="work-no" value="48951" class="input-box">
-                    </div>
+            <!-- 상단 프로필 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div>
+                    <span id="user-display" class="font-bold text-slate-800"></span> <span class="text-xs text-slate-500">작업자님</span>
+                </div>
+                <button onclick="logout()" class="text-xs text-rose-500 font-semibold px-2 py-1 rounded bg-rose-50">로그아웃</button>
+            </div>
+
+            <!-- 진행 단계 Indicator -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                    <span id="step-label-1" class="text-blue-600">1. 기본정보</span>
+                    <span id="step-label-2">2. 생산/가동</span>
+                    <span id="step-label-3">3. 검토/저장</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-600 h-full w-1/3 transition-all duration-300"></div>
                 </div>
             </div>
 
-            <!-- ① 기계 가동 & 비가동 사유 -->
-            <div class="border-b pb-4">
-                <h2 class="text-lg font-bold text-slate-800 mb-4">① 기계 가동 & 비가동 관리 <span class="text-xs font-normal text-slate-500">(FOM #2000 / #1300)</span></h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="space-y-3 bg-slate-50 p-4 rounded-lg">
-                        <h3 class="font-semibold text-sm text-slate-700">가동 시간 설정</h3>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div><label class="text-xs text-slate-500">전원 ON</label><input type="time" value="08:00" class="input-box"></div>
-                            <div><label class="text-xs text-slate-500">전원 OFF</label><input type="time" value="17:00" class="input-box"></div>
+            <!-- 카드 패널 -->
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+                
+                <!-- 1단계: 기본 정보 -->
+                <div id="step-1" class="step-card active space-y-4">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-2">📋 1단계: 기본 작업 정보</h2>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">작성일자</label>
+                        <input type="date" id="work-date" class="input-box">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">작업자명</label>
+                            <input type="text" id="worker" class="input-box" readonly>
                         </div>
                         <div>
-                            <label class="text-xs text-slate-500">총 작업시간 (분)</label>
-                            <input type="number" id="total-operate-min" value="480" class="input-box" onchange="calculateMetrics()">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">교대 구분</label>
+                            <select id="shift" class="input-box"><option>주간</option><option>야간</option></select>
                         </div>
                     </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">생산팀</label>
+                            <input type="text" id="team" value="생산2팀" class="input-box">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">생산라인</label>
+                            <select id="line" class="input-box">
+                                <option>공용페달1</option><option>공용페달2</option><option>세이프티</option><option>두산FET타입</option><option>SMT</option><option>셀렉티브</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">작지 NO</label>
+                            <input type="text" id="work-no" value="48951" class="input-box">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">거래처</label>
+                            <input type="text" id="customer" value="두산산업차량(주)" class="input-box">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">품목코드</label>
+                        <input type="text" id="item-code" value="DSCP-1A" class="input-box">
+                    </div>
+                </div>
 
-                    <div class="md:col-span-2 space-y-3 bg-slate-50 p-4 rounded-lg">
-                        <h3 class="font-semibold text-sm text-slate-700">비가동 사유 (분 단위 입력)</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                            <div><label>공구교체대기 (#2300)</label><input type="number" value="15" class="downtime-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>알람정지 (#2300)</label><input type="number" value="10" class="downtime-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>셋업·세팅 (#2300)</label><input type="number" value="20" class="downtime-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>식사·휴게 (#2400)</label><input type="number" value="0" class="downtime-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>자재입고지연 (#2500)</label><input type="number" value="15" class="downtime-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>도면대기 (#2500)</label><input type="number" value="0" class="downtime-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>기타 비가동</label><input type="number" value="0" class="downtime-input input-box mt-1" onchange="calculateMetrics()"></div>
+                <!-- 2단계: 실적 -->
+                <div id="step-2" class="step-card space-y-4">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-2">⚙️ 2단계: 수량 및 가동 실적</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">계획수량 (EA)</label>
+                            <input type="number" id="plan-qty" value="80" class="input-box" onchange="calculateMetrics()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">생산수량 (EA)</label>
+                            <input type="number" id="prod-qty" value="80" class="input-box" onchange="calculateMetrics()">
                         </div>
                     </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">불량수량 (EA)</label>
+                            <input type="number" id="defect-qty" value="1" class="input-box" onchange="calculateMetrics()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">비가동시간 (분)</label>
+                            <input type="number" id="downtime" value="60" class="input-box" onchange="calculateMetrics()">
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between text-xs font-semibold text-blue-900">
+                        <span>계산된 가동률: <b id="kpi-rate" class="text-blue-600 text-sm">87.5%</b></span>
+                        <span>양품 수량: <b id="kpi-good" class="text-emerald-600 text-sm">79 EA</b></span>
+                    </div>
+                </div>
+
+                <!-- 3단계: 제출 -->
+                <div id="step-3" class="step-card space-y-4">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-2">📝 3단계: 특이사항 및 최종 제출</h2>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">작업 특이사항 / 메모</label>
+                        <textarea id="memo" rows="4" class="input-box" placeholder="특이사항을 기재하세요."></textarea>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-1 text-slate-600">
+                        <p><b>입력 내역 최종 확인:</b></p>
+                        <p>· 작성일자/작업자: <span id="summary-1">-</span></p>
+                        <p>· 라인/작지NO: <span id="summary-2">-</span></p>
+                        <p>· 생산량/불량/가동률: <span id="summary-3">-</span></p>
+                    </div>
+                </div>
+
+                <!-- 하단 버튼 -->
+                <div class="flex justify-between gap-3 pt-4 border-t mt-6">
+                    <button id="prev-btn" onclick="nextStep(-1)" class="w-1/2 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl disabled:opacity-30" disabled>이전</button>
+                    <button id="next-btn" onclick="nextStep(1)" class="w-1/2 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md">다음</button>
+                    <button id="submit-btn" onclick="saveLog()" class="hidden w-1/2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md">구글시트로 저장</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= B. 관리자 전용 대시보드 (admin 로그인 시) ================= -->
+        <div id="admin-section" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div>
+                    <span class="font-bold text-slate-800">🔑 관리자(Admin) 모드</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="loadAdminLogs()" class="text-xs bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border">새로고침</button>
+                    <button onclick="logout()" class="text-xs text-rose-500 font-semibold px-3 py-1.5 rounded-lg bg-rose-50">로그아웃</button>
                 </div>
             </div>
 
-            <!-- ② 수주·소재 & ③ 생산 실적 -->
-            <div class="border-b pb-4">
-                <h2 class="text-lg font-bold text-slate-800 mb-4">② 수주/소재 & ③ 생산 실적 <span class="text-xs font-normal text-slate-500">(FOM #1100 / #1200 / #3000)</span></h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-600">거래처 (납품업체)</label><input type="text" id="customer" value="두산산업차량(주)" class="input-box"></div>
-                            <div><label class="text-xs text-slate-600">품목코드 / 품명</label><input type="text" id="item-code" value="DSCP-1A" class="input-box"></div>
-                            <div><label class="text-xs text-slate-600">계획수량 (EA)</label><input type="number" id="plan-qty" value="80" class="input-box" onchange="calculateMetrics()"></div>
-                            <div><label class="text-xs text-slate-600">금일 생산수량 (EA)</label><input type="number" id="prod-qty" value="80" class="input-box" onchange="calculateMetrics()"></div>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-50 p-4 rounded-lg space-y-3">
-                        <h3 class="font-semibold text-sm text-slate-700">불량 및 부적합 유형 (EA 입력)</h3>
-                        <div class="grid grid-cols-3 gap-3 text-xs">
-                            <div><label>치수불량 (#3300)</label><input type="number" value="1" class="defect-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>외관불량 (#3300)</label><input type="number" value="0" class="defect-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>Burr / 크랙 (#3300)</label><input type="number" value="0" class="defect-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>공구파손 (#3300)</label><input type="number" value="0" class="defect-input input-box mt-1" onchange="calculateMetrics()"></div>
-                            <div><label>재가공 (#4000)</label><input type="number" value="0" class="defect-input input-box mt-1" onchange="calculateMetrics()"></div>
-                        </div>
-                    </div>
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 space-y-4">
+                <h2 class="text-lg font-bold text-slate-800 border-b pb-2">📊 전체 작성 작업일지 목록</h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left text-slate-600 border-collapse">
+                        <thead class="bg-slate-100 text-slate-700 uppercase">
+                            <tr>
+                                <th class="p-2 border">일자</th>
+                                <th class="p-2 border">작업자</th>
+                                <th class="p-2 border">라인</th>
+                                <th class="p-2 border">계획/생산</th>
+                                <th class="p-2 border">불량</th>
+                                <th class="p-2 border">가동률</th>
+                                <th class="p-2 border">특이사항</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-table-body">
+                            <tr>
+                                <td colspan="7" class="p-4 text-center text-slate-400">데이터를 불러오는 중입니다...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-
-            <!-- ④ 특이사항 및 메모 -->
-            <div>
-                <h2 class="text-lg font-bold text-slate-800 mb-2">④ 특이사항 · 메모 (LLM 자동 분석용)</h2>
-                <textarea id="memo" rows="3" class="input-box" placeholder="자유롭게 기술하세요 (예: 오후 인서트 마모로 절삭음이 발생하여 공구 교체함)"></textarea>
-            </div>
-
         </div>
 
     </div>
 
-    <!-- JavaScript - 구글 스크립트 연동 -->
     <script>
-        // 1단계에서 발급받은 구글 웹 앱 URL을 아래에 입력하세요.
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMKj6tNPKUSfoYG4iHIH8U7WgB_PJSsyukzQQYWImO5WMB17OMGcMhc2rUQ-wzFULB/exec';
+        const GOOGLE_SCRIPT_URL = 'YOUR_GOOGLE_WEB_APP_URL_HERE';
+        let currentStep = 1;
+
+        document.getElementById('work-date').value = new Date().toISOString().substring(0, 10);
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const id = document.getElementById('login-id').value.trim();
+            if (!id) return;
+
+            document.getElementById('login-section').classList.add('hidden');
+
+            if (id.toLowerCase() === 'admin') {
+                // 관리자 로그인
+                document.getElementById('admin-section').classList.remove('hidden');
+                loadAdminLogs();
+            } else {
+                // 작업자 로그인 (입력받은 이름을 작업자로 자동 할당)
+                document.getElementById('user-display').innerText = id;
+                document.getElementById('worker').value = id;
+                document.getElementById('app-section').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            document.getElementById('app-section').classList.add('hidden');
+            document.getElementById('admin-section').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
+            currentStep = 1;
+            updateStepView();
+        }
+
+        function nextStep(dir) {
+            currentStep += dir;
+            if (currentStep < 1) currentStep = 1;
+            if (currentStep > 3) currentStep = 3;
+            updateStepView();
+        }
+
+        function updateStepView() {
+            document.querySelectorAll('.step-card').forEach((card, idx) => {
+                card.classList.toggle('active', idx + 1 === currentStep);
+            });
+
+            const progress = document.getElementById('progress-bar');
+            progress.style.width = (currentStep / 3 * 100) + '%';
+            
+            for (let i = 1; i <= 3; i++) {
+                const label = document.getElementById(`step-label-${i}`);
+                if (i === currentStep) {
+                    label.className = 'text-blue-600 font-extrabold';
+                } else if (i < currentStep) {
+                    label.className = 'text-slate-400 line-through';
+                } else {
+                    label.className = 'text-slate-400';
+                }
+            }
+
+            document.getElementById('prev-btn').disabled = (currentStep === 1);
+            if (currentStep === 3) {
+                document.getElementById('next-btn').classList.add('hidden');
+                document.getElementById('submit-btn').classList.remove('hidden');
+                updateSummary();
+            } else {
+                document.getElementById('next-btn').classList.remove('hidden');
+                document.getElementById('submit-btn').classList.add('hidden');
+            }
+        }
 
         function calculateMetrics() {
-            let totalDowntime = 0;
-            document.querySelectorAll('.downtime-input').forEach(input => {
-                totalDowntime += Number(input.value) || 0;
-            });
-            document.getElementById('kpi-downtime').innerText = totalDowntime;
+            const prod = Number(document.getElementById('prod-qty').value) || 0;
+            const defect = Number(document.getElementById('defect-qty').value) || 0;
+            const downtime = Number(document.getElementById('downtime').value) || 0;
 
-            let totalOperate = Number(document.getElementById('total-operate-min').value) || 480;
-            let runTime = Math.max(0, totalOperate - totalDowntime);
-            let operatingRate = ((runTime / totalOperate) * 100).toFixed(1);
-            document.getElementById('kpi-operating-rate').innerText = operatingRate + '%';
+            const runTime = Math.max(0, 480 - downtime);
+            const rate = ((runTime / 480) * 100).toFixed(1);
+            
+            document.getElementById('kpi-rate').innerText = rate + '%';
+            document.getElementById('kpi-good').innerText = Math.max(0, prod - defect) + ' EA';
+        }
 
-            let planQty = Number(document.getElementById('plan-qty').value) || 1;
-            let prodQty = Number(document.getElementById('prod-qty').value) || 0;
-            let achieveRate = ((prodQty / planQty) * 100).toFixed(1);
-            document.getElementById('kpi-achievement-rate').innerText = achieveRate + '%';
+        function updateSummary() {
+            const date = document.getElementById('work-date').value;
+            const worker = document.getElementById('worker').value;
+            const line = document.getElementById('line').value;
+            const workNo = document.getElementById('work-no').value;
+            const prod = document.getElementById('prod-qty').value;
+            const defect = document.getElementById('defect-qty').value;
+            const rate = document.getElementById('kpi-rate').innerText;
 
-            let totalDefects = 0;
-            document.querySelectorAll('.defect-input').forEach(input => {
-                totalDefects += Number(input.value) || 0;
-            });
-            document.getElementById('kpi-defect-count').innerText = totalDefects;
-            let defectRate = prodQty > 0 ? ((totalDefects / prodQty) * 100).toFixed(2) : '0.00';
-            document.getElementById('kpi-defect-rate').innerText = defectRate + '%';
-
-            let goodQty = Math.max(0, prodQty - totalDefects);
-            document.getElementById('kpi-good-qty').innerText = goodQty;
+            document.getElementById('summary-1').innerText = `${date} / ${worker}`;
+            document.getElementById('summary-2').innerText = `${line} / NO.${workNo}`;
+            document.getElementById('summary-3').innerText = `생산 ${prod}EA (불량 ${defect}EA) / 가동률 ${rate}`;
         }
 
         async function saveLog() {
-            if (GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_WEB_APP_URL_HERE') {
-                alert('구글 웹 앱 URL을 설정해야 저장이 정상 작동합니다.');
+            if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbyMKj6tNPKUSfoYG4iHIH8U7WgB_PJSsyukzQQYWImO5WMB17OMGcMhc2rUQ-wzFULB/exec') {
+                alert('구글 웹 앱 URL을 설정해 주세요.');
                 return;
             }
 
-            const btn = document.getElementById('save-btn');
-            btn.innerText = '구글 시트로 저장 중...';
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = '저장 중...';
             btn.disabled = true;
 
             const logData = {
@@ -214,9 +321,9 @@
                 itemCode: document.getElementById('item-code').value,
                 planQty: document.getElementById('plan-qty').value,
                 prodQty: document.getElementById('prod-qty').value,
-                defectQty: document.getElementById('kpi-defect-count').innerText,
-                downtime: document.getElementById('kpi-downtime').innerText,
-                operatingRate: document.getElementById('kpi-operating-rate').innerText,
+                defectQty: document.getElementById('defect-qty').value,
+                downtime: document.getElementById('downtime').value,
+                operatingRate: document.getElementById('kpi-rate').innerText,
                 memo: document.getElementById('memo').value
             };
 
@@ -227,12 +334,47 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(logData)
                 });
-                alert('구글 스프레드시트에 작업일지가 정상적으로 등록되었습니다!');
+                alert('작업일지가 성공적으로 등록되었습니다!');
+                location.reload();
             } catch (err) {
-                alert('저장 중 오류가 발생했습니다: ' + err.message);
+                alert('저장 실패: ' + err.message);
             } finally {
                 btn.innerText = '구글시트로 저장';
                 btn.disabled = false;
+            }
+        }
+
+        // 관리자 모드: 구글 시트에서 전체 데이터 불러오기
+        async function loadAdminLogs() {
+            const tbody = document.getElementById('admin-table-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">최신 데이터를 불러오는 중...</td></tr>';
+
+            try {
+                const res = await fetch(GOOGLE_SCRIPT_URL);
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">등록된 일지가 없습니다.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                data.reverse().forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b hover:bg-slate-50';
+                    tr.innerHTML = `
+                        <td class="p-2 border font-medium">${row.workDate ? String(row.workDate).substring(0,10) : ''}</td>
+                        <td class="p-2 border font-bold text-blue-600">${row.worker || ''}</td>
+                        <td class="p-2 border">${row.line || ''}</td>
+                        <td class="p-2 border">${row.planQty}/${row.prodQty} EA</td>
+                        <td class="p-2 border text-rose-500 font-semibold">${row.defectQty || 0}</td>
+                        <td class="p-2 border">${row.operatingRate || ''}</td>
+                        <td class="p-2 border text-slate-500">${row.memo || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-rose-500">데이터 조회 중 오류 발생: ${err.message}</td></tr>`;
             }
         }
 
