@@ -217,9 +217,9 @@
                         </div>
                     </div>
 
-                    <!-- ⑤ 공구·팁 모델 (1~3개 선택 입력) -->
+                    <!-- ⑤ 공구·팁 모델 -->
                     <div class="space-y-2">
-                        <label class="block text-xs font-bold text-slate-700">🛠️ 공구/팁 교체 이력 (최대 3개)</label>
+                        <label class="block text-xs font-bold text-slate-700">🛠️ 공구/팁 교체 이력 (최대 2개)</label>
                         <div class="border rounded-lg p-2 bg-white space-y-1 text-xs">
                             <span class="font-bold text-blue-600">공구 #1</span>
                             <div class="grid grid-cols-3 gap-1">
@@ -415,8 +415,8 @@
         }
 
         async function saveLog() {
-            if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycby4DDaPJZ9DzEc3zvxPbJcRqoivDrj5ewn3FMaphgJsrbf87fG1VT-f-L9pyjpGhzBD/exec') {
-                alert('구글 웹 앱 URL을 설정해 주세요.');
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === '') {
+                alert('구글 웹 앱 URL을 먼저 설정해 주세요.');
                 return;
             }
 
